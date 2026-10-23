@@ -1,0 +1,22 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "cyclista-cordula",
+  "main": "worker/index.ts",
+  "compatibility_date": "2026-10-01",
+  "account_id": "48e35e92386281db027cf77935b8b2c5",
+  // Le Worker sert le site (dist) et répond lui-même aux appels /api.
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  // D1 et R2 sont créés automatiquement au premier déploiement.
+  "d1_databases": [{ "binding": "DB", "database_name": "cyclista-cordula", "migrations_dir": "migrations" }],
+  "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "cyclista-cordula-images" }],
+  "vars": {
+    // À remplir après activation de Cloudflare Access (voir README).
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  }
+}
