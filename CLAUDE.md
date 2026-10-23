@@ -38,7 +38,7 @@ Champ `sport` (`'velo'` pour l'instant, `'course'` plus tard) sur les pièces et
 ### Pièce (`pieces`)
 - nom, marque, lien produit (optionnel), sport.
 - type : sous-maillot, maillot manches courtes, maillot manches longues, veste, gilet coupe-vent, imperméable, cuissard court, cuissard long, collant, manchettes, jambières, genouillères, gants courts, gants longs, couvre-chaussures, chaussettes, bonnet, casquette, tour de cou.
-- zone : tronc base, tronc milieu, tronc extérieur, jambes, bras, mains, pieds, tête/cou. Déduite du type par défaut, modifiable.
+- zones : liste parmi tronc base, tronc milieu, tronc extérieur, jambes, bras, mains, pieds, tête/cou. Une pièce peut couvrir plusieurs zones (maillot manches longues = tronc milieu + bras). Déduites du type par défaut, modifiables.
 - composition, grammage : texte libre.
 - indices 0 à 5 : chaleur, coupe-vent, imperméabilité, respirabilité.
 - compressible en poche : booléen.
@@ -85,6 +85,13 @@ CRUD des pièces. Ajout en trois étapes :
 - Option : préciser la zone (mains froides, tronc trop chaud...).
 - Chaque retour ajuste un décalage personnel par zone, appliqué aux recos suivantes, visible et modifiable dans les réglages.
 - Historique des sorties : météo, tenue portée, retour.
+
+## Décisions prises
+- Repo public (requis pour GitHub Pages gratuit).
+- Un seul utilisateur : inscriptions désactivées après création du compte.
+- Connexion par code reçu par e-mail (en plus du lien), session conservée sur chaque appareil : on ne se reconnecte pas à chaque ouverture.
+- Reco : pour chaque zone, on additionne les indices de toutes les pièces qui la couvrent. Le tronc est un empilement base + milieu + extérieur. Les recouvrements sont permis (maillot manches longues + manchettes).
+- Backend : à confirmer (l'utilisateur a déjà 2 projets Supabase gratuits).
 
 ## Hors périmètre pour l'instant
 - API Strava (OAuth).
