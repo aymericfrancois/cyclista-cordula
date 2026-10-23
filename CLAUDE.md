@@ -7,26 +7,26 @@ L'utilisateur est PM, pas dev senior : expliquer chaque choix technique en une p
 ## Dépôt et déploiement
 
 - Repo : `https://github.com/aymericfrancois/cyclista-cordula.git`, branche principale `main`.
-- Déploiement : GitHub Pages via GitHub Actions, URL `https://aymericfrancois.github.io/cyclista-cordula/`.
-- Vite `base: '/cyclista-cordula/'`. Le manifest PWA (`start_url`, `scope`) et le service worker utilisent ce même préfixe.
-- Routage en `HashRouter` (GitHub Pages ne sait pas réécrire les URL d'une SPA).
-- Supabase Auth, URL de redirection autorisées : l'URL de prod ci-dessus et `http://localhost:5173`.
+- Hébergement : tout sur Cloudflare (un seul Worker qui sert le site statique et l'API, même domaine), déployé par GitHub Actions avec `wrangler`. URL : `https://cyclista-cordula.<sous-domaine>.workers.dev`.
+- Un seul domaine pour que Cloudflare Access (login) protège site et API sans problème de CORS ni de cookies.
+- Vite `base: '/'`. Routage en `HashRouter` pour rester simple.
+- Auth : Cloudflare Access (Zero Trust, gratuit jusqu'à 50 utilisateurs), code reçu par e-mail, politique limitée à l'e-mail de l'utilisateur. Aucun code d'authentification à écrire.
 
 ## Stack imposée
 
 - Vite + React + TypeScript strict + Tailwind.
 - PWA installable sur Android (`vite-plugin-pwa`), caméra via `<input type="file" accept="image/*" capture>`.
-- Supabase offre gratuite : auth par lien magique (e-mail), Postgres, Storage. Données synchronisées PC et téléphone.
+- Cloudflare offre gratuite : Worker (API), D1 (SQLite) pour les données, R2 pour les images, Access pour le login. Données synchronisées PC et téléphone.
 - Aucune API payante. Aucun appel LLM depuis l'app.
 - Code, commentaires et interface en français. Composants simples, pas de sur-architecture.
 
 ## Contraintes qualité
 
-- zod pour toute donnée externe : GPX parsé, réponses météo, JSON collé, lignes Supabase si utile.
+- zod pour toute donnée externe : GPX parsé, réponses météo, JSON collé, corps des requêtes reçues par l'API.
 - Images compressées en WebP côté client avant upload, largeur max 1200 px.
-- RLS Supabase sur toutes les tables et le bucket Storage : chaque utilisateur ne voit que ses données (`user_id = auth.uid()`).
-- `.env.example` documente les variables (`VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`). Jamais de secret commité. En CI, ces valeurs viennent des secrets GitHub.
-- README court : installation, configuration Supabase pas à pas, déploiement.
+- Pas de RLS : Cloudflare Access est la seule porte d'entrée, un seul utilisateur. Le Worker refuse toute requête sans l'en-tête d'identité Access valide (vérification du JWT `Cf-Access-Jwt-Assertion`).
+- `.env.example` documente les variables. Jamais de secret commité. En CI, `CLOUDFLARE_API_TOKEN` et `CLOUDFLARE_ACCOUNT_ID` viennent des secrets GitHub.
+- README court : installation, configuration Cloudflare pas à pas (D1, R2, Access), déploiement.
 - Petits commits, messages clairs en français.
 - Logique métier (découpage trace, vitesse, météo, ressenti, reco, feedback) dans des modules purs testés avec Vitest, séparés de l'UI.
 - Tous les seuils et coefficients dans un seul fichier de constantes nommées.
@@ -87,11 +87,11 @@ CRUD des pièces. Ajout en trois étapes :
 - Historique des sorties : météo, tenue portée, retour.
 
 ## Décisions prises
-- Repo public (requis pour GitHub Pages gratuit).
-- Un seul utilisateur : inscriptions désactivées après création du compte.
-- Connexion par code reçu par e-mail (en plus du lien), session conservée sur chaque appareil : on ne se reconnecte pas à chaque ouverture.
+- Repo public.
+- Un seul utilisateur, autorisé par son e-mail dans Cloudflare Access. Session conservée sur chaque appareil (durée longue, réglée dans Access).
 - Reco : pour chaque zone, on additionne les indices de toutes les pièces qui la couvrent. Le tronc est un empilement base + milieu + extérieur. Les recouvrements sont permis (maillot manches longues + manchettes).
-- Backend : à confirmer (l'utilisateur a déjà 2 projets Supabase gratuits).
+- Backend : Cloudflare (Supabase écarté : 2 projets gratuits déjà utilisés). R2 avec carte bancaire enregistrée, alerte de budget à 0 €.
+- Pas de GitHub Pages : abandon pour garder un seul domaine derrière Access.
 
 ## Hors périmètre pour l'instant
 - API Strava (OAuth).
@@ -99,7 +99,7 @@ CRUD des pièces. Ajout en trois étapes :
 - Version course à pied (mais garder le champ `sport`).
 
 ## Phases
-1. Squelette : Vite, Tailwind, PWA, Supabase auth, déploiement GitHub Pages qui marche.
+1. Squelette : Vite, Tailwind, PWA, Worker + D1 + R2 + Access, déploiement Cloudflare par GitHub Actions qui marche.
 2. Garde-robe : CRUD, photos, upload image propre, état dispo/sale.
 3. Aide LLM copier-coller : génération du prompt, validation du JSON.
 4. Sortie : import GPX, heures de passage, météo AROME, profil.
