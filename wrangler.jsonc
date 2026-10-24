@@ -15,8 +15,8 @@
   "d1_databases": [{ "binding": "DB", "database_name": "cyclista-cordula", "migrations_dir": "migrations" }],
   "r2_buckets": [{ "binding": "IMAGES", "bucket_name": "cyclista-cordula-images" }],
   "vars": {
-    // À remplir après activation de Cloudflare Access (voir README).
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    // Cloudflare Access : identifiants publics, pas des secrets (voir README).
+    "ACCESS_TEAM_DOMAIN": "lively-bread-9545.cloudflareaccess.com",
+    "ACCESS_AUD": "9f32033656fc5092940e617aec6db4027b2dcfba6b3d3972a57d78929c0703d8"
   }
 }
