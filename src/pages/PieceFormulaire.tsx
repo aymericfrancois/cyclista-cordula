@@ -245,26 +245,6 @@ export default function PieceFormulaire() {
         )}
       </Section>
 
-      <Section titre="Image propre" onPaste={collerSurPropre}>
-        <p className="text-xs text-slate-500">PNG généré avec Flux. Affichée à la place de la photo dans la liste.</p>
-        {propreAffichee && (
-          <Vignette
-            src={propreAffichee}
-            grande
-            onRetirer={() => {
-              if (propreAjoutee) URL.revokeObjectURL(propreAjoutee.apercu)
-              setPropreAjoutee(null)
-              setPropreRetiree(true)
-            }}
-          />
-        )}
-        <label className={bouton}>
-          {propreAffichee ? 'Remplacer' : 'Choisir le fichier'}
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) choisirPropre(f); e.target.value = '' }} />
-        </label>
-        <AjoutImage onFichier={choisirPropre} />
-      </Section>
-
       <Section titre="Pièce">
         <label className="block text-sm font-medium">
           Type
@@ -288,6 +268,23 @@ export default function PieceFormulaire() {
           Lien produit (optionnel)
           <input type="url" inputMode="url" className={champ} value={lien} placeholder="https://…" onChange={(e) => setLien(e.target.value)} />
         </label>
+      </Section>
+
+      <Section titre="Indices (0 à 5)">
+        <Indice libelle="Chaleur" aide="0 = aucune isolation, 5 = très chaud (hiver)" valeur={form.chaleur} onChange={(v) => modifier('chaleur', v)} />
+        <Indice libelle="Coupe-vent" aide="0 = laisse passer, 5 = bloque totalement" valeur={form.coupeVent} onChange={(v) => modifier('coupeVent', v)} />
+        <Indice libelle="Imperméabilité" aide="0 = absorbe l’eau, 5 = étanche" valeur={form.impermeabilite} onChange={(v) => modifier('impermeabilite', v)} />
+        <Indice libelle="Respirabilité" aide="0 = évacue mal la transpiration, 5 = très respirant" valeur={form.respirabilite} onChange={(v) => modifier('respirabilite', v)} />
+        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
+          <input type="checkbox" className="size-5 accent-sky-600" checked={form.compressible} onChange={(e) => modifier('compressible', e.target.checked)} />
+          Compressible, tient dans une poche
+        </label>
+      </Section>
+
+      <details className="rounded-lg border border-slate-200 dark:border-slate-800">
+        <summary className="flex min-h-12 cursor-pointer items-center px-4 font-medium">Plus de détails : zones, matière, image propre, état</summary>
+        <div className="space-y-4 p-4 pt-0">
+      <Section titre="Zones couvertes">
         <fieldset>
           <legend className="text-sm font-medium">Zones couvertes</legend>
           <div className="mt-1 flex flex-wrap gap-2">
@@ -305,7 +302,6 @@ export default function PieceFormulaire() {
           </div>
         </fieldset>
       </Section>
-
       <Section titre="Matière">
         <label className="block text-sm font-medium">
           Composition
@@ -316,18 +312,25 @@ export default function PieceFormulaire() {
           <input className={champ} value={form.grammage} maxLength={100} placeholder="ex. 180 g/m²" onChange={(e) => modifier('grammage', e.target.value)} />
         </label>
       </Section>
-
-      <Section titre="Indices (0 à 5)">
-        <Indice libelle="Chaleur" aide="0 = aucune isolation, 5 = très chaud (hiver)" valeur={form.chaleur} onChange={(v) => modifier('chaleur', v)} />
-        <Indice libelle="Coupe-vent" aide="0 = laisse passer, 5 = bloque totalement" valeur={form.coupeVent} onChange={(v) => modifier('coupeVent', v)} />
-        <Indice libelle="Imperméabilité" aide="0 = absorbe l’eau, 5 = étanche" valeur={form.impermeabilite} onChange={(v) => modifier('impermeabilite', v)} />
-        <Indice libelle="Respirabilité" aide="0 = évacue mal la transpiration, 5 = très respirant" valeur={form.respirabilite} onChange={(v) => modifier('respirabilite', v)} />
-        <label className="flex min-h-11 items-center gap-3 text-sm font-medium">
-          <input type="checkbox" className="size-5 accent-sky-600" checked={form.compressible} onChange={(e) => modifier('compressible', e.target.checked)} />
-          Compressible, tient dans une poche
+      <Section titre="Image propre" onPaste={collerSurPropre}>
+        <p className="text-xs text-slate-500">PNG généré avec Flux. Affichée à la place de la photo dans la liste.</p>
+        {propreAffichee && (
+          <Vignette
+            src={propreAffichee}
+            grande
+            onRetirer={() => {
+              if (propreAjoutee) URL.revokeObjectURL(propreAjoutee.apercu)
+              setPropreAjoutee(null)
+              setPropreRetiree(true)
+            }}
+          />
+        )}
+        <label className={bouton}>
+          {propreAffichee ? 'Remplacer' : 'Choisir le fichier'}
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) choisirPropre(f); e.target.value = '' }} />
         </label>
+        <AjoutImage onFichier={choisirPropre} />
       </Section>
-
       <Section titre="État">
         <div className="flex gap-2">
           {ETATS.map((e) => (
@@ -344,6 +347,8 @@ export default function PieceFormulaire() {
           ))}
         </div>
       </Section>
+        </div>
+      </details>
 
       {erreur && <ErreurApi message={erreur} />}
 
