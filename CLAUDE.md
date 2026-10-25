@@ -109,7 +109,7 @@ CRUD des pièces. Ajout en trois étapes :
 
 ## État d'avancement
 - [x] Phase 1 (en ligne : https://cyclista-cordula.aymericola.workers.dev)
-- [ ] Phase 2 (code poussé, à valider)
+- [x] Phase 2
 - [ ] Phase 3
 - [ ] Phase 4
 - [ ] Phase 5

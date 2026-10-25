@@ -2,8 +2,10 @@ import { useEffect, useState, type ClipboardEvent, type FormEvent, type ReactNod
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ErreurApi from '../components/ErreurApi'
 import Indice from '../components/Indice'
+import AideLlm from '../components/AideLlm'
 import AjoutImage from '../components/AjoutImage'
 import { compresserEnWebp, imageDeLEvenement } from '../lib/image'
+import { appliquerReponse, type ReponseLlm } from '../lib/llm'
 import {
   ajouterPhoto,
   creerPiece,
@@ -78,6 +80,7 @@ export default function PieceFormulaire() {
   const [chargement, setChargement] = useState(id !== undefined)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
+  const [justification, setJustification] = useState('')
 
   // Modifications d'images mises en attente jusqu'à « Enregistrer ».
   const [photosAjoutees, setPhotosAjoutees] = useState<Fichier[]>([])
@@ -99,6 +102,11 @@ export default function PieceFormulaire() {
 
   const modifier = <K extends keyof PieceEntree>(cle: K, valeur: PieceEntree[K]) =>
     setForm((f) => ({ ...f, [cle]: valeur }))
+
+  function appliquerLlm(reponse: ReponseLlm) {
+    setForm((f) => appliquerReponse(f, reponse))
+    setJustification(reponse.justification)
+  }
 
   function changerType(type: TypePiece) {
     setForm((f) => ({ ...f, type, zones: [...ZONES_PAR_TYPE[type]], compressible: COMPRESSIBLE_PAR_TYPE[type] }))
@@ -270,7 +278,14 @@ export default function PieceFormulaire() {
         </label>
       </Section>
 
+      <AideLlm form={form} lien={lien} ouvert={!piece} onReponse={appliquerLlm} />
+
       <Section titre="Indices (0 à 5)">
+        {justification && (
+          <p className="rounded-lg bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-100">
+            Estimation de Claude : {justification}
+          </p>
+        )}
         <Indice libelle="Chaleur" aide="0 = aucune isolation, 5 = très chaud (hiver)" valeur={form.chaleur} onChange={(v) => modifier('chaleur', v)} />
         <Indice libelle="Coupe-vent" aide="0 = laisse passer, 5 = bloque totalement" valeur={form.coupeVent} onChange={(v) => modifier('coupeVent', v)} />
         <Indice libelle="Imperméabilité" aide="0 = absorbe l’eau, 5 = étanche" valeur={form.impermeabilite} onChange={(v) => modifier('impermeabilite', v)} />
