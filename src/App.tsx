@@ -1,5 +1,6 @@
 import { NavLink, Navigate, Route, Routes } from 'react-router-dom'
 import Garderobe from './pages/Garderobe'
+import PieceFormulaire from './pages/PieceFormulaire'
 import Sortie from './pages/Sortie'
 import Reglages from './pages/Reglages'
 
@@ -15,6 +16,8 @@ export default function App() {
       <main className="flex-1 p-4 pb-24">
         <Routes>
           <Route path="/garde-robe" element={<Garderobe />} />
+          <Route path="/garde-robe/nouvelle" element={<PieceFormulaire />} />
+          <Route path="/garde-robe/:id" element={<PieceFormulaire />} />
           <Route path="/sortie" element={<Sortie />} />
           <Route path="/reglages" element={<Reglages />} />
           <Route path="*" element={<Navigate to="/sortie" replace />} />

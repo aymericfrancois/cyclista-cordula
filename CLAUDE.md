@@ -37,13 +37,13 @@ Champ `sport` (`'velo'` pour l'instant, `'course'` plus tard) sur les pièces et
 
 ### Pièce (`pieces`)
 - nom, marque, lien produit (optionnel), sport.
-- type : sous-maillot, maillot manches courtes, maillot manches longues, veste, gilet coupe-vent, imperméable, cuissard court, cuissard long, collant, manchettes, jambières, genouillères, gants courts, gants longs, couvre-chaussures, chaussettes, bonnet, casquette, tour de cou.
+- type : sous-maillot, maillot manches courtes, maillot manches longues, veste, gilet coupe-vent, imperméable, cuissard court, cuissard long, collant, manchettes, jambières, genouillères, gants courts, gants longs, couvre-chaussures, chaussettes, bonnet, casquette, cagoule, tour de cou, tour d'oreilles.
 - zones : liste parmi tronc base, tronc milieu, tronc extérieur, jambes, bras, mains, pieds, tête/cou. Une pièce peut couvrir plusieurs zones (maillot manches longues = tronc milieu + bras). Déduites du type par défaut, modifiables.
 - composition, grammage : texte libre.
 - indices 0 à 5 : chaleur, coupe-vent, imperméabilité, respirabilité.
 - compressible en poche : booléen.
 - état : dispo, au sale, en lavage. Bascule en un tap depuis la liste.
-- images : photos originales + une image « propre » (PNG généré à part avec Flux/ComfyUI puis uploadé). Afficher l'image propre si elle existe, sinon la première photo.
+- images : 1 à 3 photos originales (1 suffit) + une image « propre » (PNG généré à part avec Flux/ComfyUI puis uploadé). Afficher l'image propre si elle existe, sinon la première photo.
 
 ### Sortie (`sorties`)
 - sport, date/heure de départ, vitesse moyenne sur le plat (km/h), trace (GPX stocké ou points simplifiés).
@@ -109,7 +109,7 @@ CRUD des pièces. Ajout en trois étapes :
 
 ## État d'avancement
 - [x] Phase 1 (en ligne : https://cyclista-cordula.aymericola.workers.dev)
-- [ ] Phase 2
+- [ ] Phase 2 (code poussé, à valider)
 - [ ] Phase 3
 - [ ] Phase 4
 - [ ] Phase 5
