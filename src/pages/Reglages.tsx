@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import ErreurApi from '../components/ErreurApi'
 import { appeler, schemaMoi, schemaSante } from '../lib/api'
 
 type Etat = { email: string; base: boolean; images: boolean } | { erreur: string } | null
@@ -18,7 +19,7 @@ export default function Reglages() {
       <section className="mt-4 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
         <h2 className="font-medium">Connexion et services</h2>
         {etat === null && <p className="mt-2 text-slate-500">Vérification…</p>}
-        {etat && 'erreur' in etat && <p className="mt-2 text-red-600">API en erreur : {etat.erreur}</p>}
+        {etat && 'erreur' in etat && <ErreurApi message={etat.erreur} />}
         {etat && 'email' in etat && (
           <ul className="mt-2 space-y-1 text-sm">
             <li>Connecté : {etat.email}</li>

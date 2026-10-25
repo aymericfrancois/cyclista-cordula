@@ -108,7 +108,7 @@ CRUD des pièces. Ajout en trois étapes :
 7. Feedback et ajustement personnel.
 
 ## État d'avancement
-- [ ] Phase 1
+- [x] Phase 1 (en ligne : https://cyclista-cordula.aymericola.workers.dev)
 - [ ] Phase 2
 - [ ] Phase 3
 - [ ] Phase 4

@@ -14,6 +14,9 @@ app.use('/api/*', async (c, next) => {
   await next()
 })
 
+// Point d'entrée pour se reconnecter : Access impose le login, puis on revient à l'accueil.
+app.get('/api/connexion', (c) => c.redirect('/'))
+
 app.get('/api/me', (c) => c.json({ email: c.get('email') }))
 
 // Vérifie que la base D1 et le stockage R2 répondent.
