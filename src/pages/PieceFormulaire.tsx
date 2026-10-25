@@ -1,8 +1,9 @@
-import { useEffect, useState, type FormEvent, type ReactNode } from 'react'
+import { useEffect, useState, type ClipboardEvent, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import ErreurApi from '../components/ErreurApi'
 import Indice from '../components/Indice'
-import { compresserEnWebp } from '../lib/image'
+import AjoutImage from '../components/AjoutImage'
+import { compresserEnWebp, imageDeLEvenement } from '../lib/image'
 import {
   ajouterPhoto,
   creerPiece,
@@ -59,9 +60,9 @@ function vide(): PieceEntree {
 
 const message = (e: unknown) => (e instanceof Error ? e.message : String(e))
 
-function Section({ titre, children }: { titre: string; children: ReactNode }) {
+function Section({ titre, children, onPaste }: { titre: string; children: ReactNode; onPaste?: (e: ClipboardEvent<HTMLElement>) => void }) {
   return (
-    <section className="space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
+    <section onPaste={onPaste} className="space-y-3 rounded-lg border border-slate-200 p-4 dark:border-slate-800">
       <h2 className="font-medium">{titre}</h2>
       {children}
     </section>
@@ -110,17 +111,36 @@ export default function PieceFormulaire() {
   const photosGardees = (piece?.photos ?? []).filter((p) => !photosRetirees.includes(p))
   const placesLibres = MAX_PHOTOS - photosGardees.length - photosAjoutees.length
 
-  function ajouterFichiers(fichiers: FileList | null) {
-    if (!fichiers) return
-    const nouveaux = [...fichiers].slice(0, placesLibres).map((fichier) => ({ fichier, apercu: URL.createObjectURL(fichier) }))
+  function ajouterPhotos(fichiers: File[]) {
+    const nouveaux = fichiers.slice(0, placesLibres).map((fichier) => ({ fichier, apercu: URL.createObjectURL(fichier) }))
     setPhotosAjoutees((l) => [...l, ...nouveaux])
   }
 
-  function choisirPropre(fichiers: FileList | null) {
-    const fichier = fichiers?.[0]
-    if (!fichier) return
+  function choisirPropre(fichier: File) {
     if (propreAjoutee) URL.revokeObjectURL(propreAjoutee.apercu)
     setPropreAjoutee({ fichier, apercu: URL.createObjectURL(fichier) })
+    setPropreRetiree(false)
+  }
+
+  // Ctrl+V n'importe où dans la page : l'image collée devient une photo.
+  // Le bloc « Image propre » intercepte son propre collage avant (stopPropagation).
+  useEffect(() => {
+    function surColler(e: globalThis.ClipboardEvent) {
+      const fichier = imageDeLEvenement(e)
+      if (!fichier || placesLibres <= 0) return
+      e.preventDefault()
+      ajouterPhotos([fichier])
+    }
+    document.addEventListener('paste', surColler)
+    return () => document.removeEventListener('paste', surColler)
+  })
+
+  function collerSurPropre(e: ClipboardEvent<HTMLElement>) {
+    const fichier = imageDeLEvenement(e)
+    if (!fichier) return
+    e.preventDefault()
+    e.stopPropagation()
+    choisirPropre(fichier)
   }
 
   async function enregistrer(e: FormEvent) {
@@ -208,15 +228,16 @@ export default function PieceFormulaire() {
             />
           ))}
         </div>
+        {placesLibres > 0 && <AjoutImage onFichier={(f) => ajouterPhotos([f])} />}
         {placesLibres > 0 ? (
           <div className="flex flex-wrap gap-2">
             <label className={bouton}>
               Prendre une photo
-              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { ajouterFichiers(e.target.files); e.target.value = '' }} />
+              <input type="file" accept="image/*" capture="environment" className="hidden" onChange={(e) => { ajouterPhotos([...(e.target.files ?? [])]); e.target.value = '' }} />
             </label>
             <label className={bouton}>
               Choisir un fichier
-              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { ajouterFichiers(e.target.files); e.target.value = '' }} />
+              <input type="file" accept="image/*" multiple className="hidden" onChange={(e) => { ajouterPhotos([...(e.target.files ?? [])]); e.target.value = '' }} />
             </label>
           </div>
         ) : (
@@ -224,7 +245,7 @@ export default function PieceFormulaire() {
         )}
       </Section>
 
-      <Section titre="Image propre">
+      <Section titre="Image propre" onPaste={collerSurPropre}>
         <p className="text-xs text-slate-500">PNG généré avec Flux. Affichée à la place de la photo dans la liste.</p>
         {propreAffichee && (
           <Vignette
@@ -239,8 +260,9 @@ export default function PieceFormulaire() {
         )}
         <label className={bouton}>
           {propreAffichee ? 'Remplacer' : 'Choisir le fichier'}
-          <input type="file" accept="image/*" className="hidden" onChange={(e) => { choisirPropre(e.target.files); setPropreRetiree(false); e.target.value = '' }} />
+          <input type="file" accept="image/*" className="hidden" onChange={(e) => { const f = e.target.files?.[0]; if (f) choisirPropre(f); e.target.value = '' }} />
         </label>
+        <AjoutImage onFichier={choisirPropre} />
       </Section>
 
       <Section titre="Pièce">

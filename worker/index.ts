@@ -1,6 +1,7 @@
 import { Hono } from 'hono'
 import { identifier } from './auth'
 import type { Env } from './env'
+import { distant } from './distant'
 import { images, pieces } from './pieces'
 
 type Variables = { email: string }
@@ -31,6 +32,7 @@ app.get('/api/sante', async (c) => {
 
 app.route('/api/pieces', pieces)
 app.route('/api/images', images)
+app.route('/api/image-distante', distant)
 
 app.notFound((c) => c.json({ erreur: 'Introuvable' }, 404))
 
