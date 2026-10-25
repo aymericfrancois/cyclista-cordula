@@ -167,6 +167,8 @@ export const schemaPieceEntree = z.object({
   impermeabilite: indice,
   respirabilite: indice,
   compressible: z.boolean(),
+  /** Retours d'usage, transmis à Claude pour ajuster les indices. */
+  notes: z.string().trim().max(500),
   etat: z.enum(ETATS),
 })
 

@@ -13,32 +13,61 @@ export const MODELE_JSON = `{
   "impermeabilite": 0,
   "respirabilite": 0,
   "compressible": false,
+  "confiance": "moyenne",
   "justification": "2 ou 3 phrases : sur quoi tu te bases pour les notes"
 }`
+
+/** Au-delà, le texte de la page est tronqué : les fiches AliExpress sont énormes et le début suffit. */
+export const MAX_TEXTE_FICHE = 15000
+
+export type Actuel = Pick<PieceEntree, 'composition' | 'grammage' | 'chaleur' | 'coupeVent' | 'impermeabilite' | 'respirabilite'>
 
 export type EntreePrompt = {
   type: TypePiece
   lien: string
   nom: string
   marque: string
-  /** Texte de la fiche produit, si le lien ne peut pas être lu. */
+  /** Texte de la page produit collé par l'utilisateur : Claude n'ouvre alors pas le lien. */
   texteFiche: string
+  /** Retours d'usage de l'utilisateur (« je transpire beaucoup dedans »). */
+  notes: string
+  /** Valeurs déjà enregistrées : Claude les ajuste au lieu de repartir de zéro. */
+  actuel?: Actuel
 }
 
-export function construirePrompt({ type, lien, nom, marque, texteFiche }: EntreePrompt): string {
-  const connu = [nom && `Nom : ${nom}`, marque && `Marque : ${marque}`].filter(Boolean).join('\n')
-  return `Tu es expert en textile pour le cyclisme sur route. Je veux renseigner une pièce de ma garde-robe pour une app qui me dit comment m'habiller selon la météo.
+const aDesValeurs = (a: Actuel) =>
+  a.composition.trim() !== '' || a.grammage.trim() !== '' || a.chaleur + a.coupeVent + a.impermeabilite + a.respirabilite > 0
 
-Pièce :
-Type : ${LIBELLE_TYPE[type]}
-Lien produit : ${lien.trim() || '(aucun)'}
-${connu}
-${texteFiche.trim() ? `\nTexte de la fiche produit :\n"""\n${texteFiche.trim()}\n"""\n` : ''}
-Consignes :
-- Ouvre le lien et lis la fiche produit. Si tu ne peux pas la lire et que je n'ai pas fourni son texte, réponds uniquement {"erreur": "raison"} : n'invente rien.
-- N'invente aucune donnée. Si une information manque, laisse la chaîne vide et estime les notes avec prudence.
+export function construirePrompt({ type, lien, nom, marque, texteFiche, notes, actuel }: EntreePrompt): string {
+  const fiche = texteFiche.trim().slice(0, MAX_TEXTE_FICHE)
+  const connu = [nom.trim() && `Nom : ${nom.trim()}`, marque.trim() && `Marque : ${marque.trim()}`].filter(Boolean).join('\n')
+  const sections = [
+    `Tu es expert en textile pour le cyclisme sur route. Je veux renseigner une pièce de ma garde-robe pour une app qui me dit comment m'habiller selon la météo.`,
+    `Pièce :\nType : ${LIBELLE_TYPE[type]}\nLien produit : ${lien.trim() || '(aucun)'}${connu ? `\n${connu}` : ''}`,
+  ]
+  if (fiche) sections.push(`Texte de la fiche produit (copié depuis la page) :\n"""\n${fiche}\n"""`)
+  if (actuel && aDesValeurs(actuel)) {
+    sections.push(
+      `Valeurs déjà enregistrées dans l'app (à ajuster si c'est justifié, pas à refaire de zéro) :\ncomposition : ${actuel.composition || '(vide)'}\ngrammage : ${actuel.grammage || '(vide)'}\nchaleur ${actuel.chaleur}, coupeVent ${actuel.coupeVent}, impermeabilite ${actuel.impermeabilite}, respirabilite ${actuel.respirabilite}`,
+    )
+  }
+  if (notes.trim()) {
+    sections.push(`Mes retours d'usage (ils priment sur la fiche quand ils la contredisent) :\n${notes.trim()}`)
+  }
+
+  const source = fiche
+    ? `- Base-toi uniquement sur le texte de la fiche ci-dessus. N'ouvre pas le lien.`
+    : `- Ouvre le lien et lis la fiche produit. Si tu ne peux pas la lire, réponds uniquement {"erreur": "raison"} : n'invente rien.`
+  const retours = notes.trim()
+    ? `\n- Si mes retours d'usage contredisent la fiche (par exemple « je transpire beaucoup » : respirabilité plus basse), ajuste les notes en conséquence et dis-le dans la justification.`
+    : ''
+
+  sections.push(`Consignes :
+${source}
+- N'invente aucune donnée. Si la fiche est incomplète (pas de pourcentages, pas de grammage...) : écris ce qui est connu dans la composition (ex. « polyester + élasthanne, pourcentages non précisés »), laisse le grammage vide s'il est inconnu, et estime les notes d'après le type de pièce, les tissus et les détails de construction.
+- confiance : « haute » seulement si composition et grammage sont connus, « moyenne » s'il en manque un, « faible » si tu estimes surtout d'après le type de pièce.
 - La composition tient en une ligne. S'il y a plusieurs tissus, indique-les tous (extérieur, intérieur, panneaux).
-- Les notes sont des entiers de 0 à 5, sur la même échelle pour tous mes vêtements : elles sont additionnées quand je superpose des couches. Note la pièce telle qu'elle est portée, en moyenne si elle mélange plusieurs tissus. Les fiches marketing exagèrent : en cas de doute, note plus bas la protection (coupe-vent, imperméabilité).
+- Les notes sont des entiers de 0 à 5, sur la même échelle pour tous mes vêtements : elles sont additionnées quand je superpose des couches. Note la pièce telle qu'elle est portée, en moyenne si elle mélange plusieurs tissus. Les fiches marketing exagèrent : en cas de doute, note plus bas la protection (coupe-vent, imperméabilité).${retours}
 
 Échelle :
 - chaleur : 0 aucune isolation (été), 1 maillot d'été ou gilet sans doublure, 2 manches longues mi-saison ou sous-maillot thermique léger, 3 thermique d'hiver doux (10 °C environ), 4 veste d'hiver chaude (autour de 0 à 5 °C), 5 très chaud (sous 0 °C).
@@ -48,7 +77,8 @@ Consignes :
 - compressible : true seulement si la pièce se plie assez petit pour une poche de maillot.
 
 Réponds uniquement par un bloc JSON valide, sans texte autour, de cette forme :
-${MODELE_JSON}`
+${MODELE_JSON}`)
+  return sections.join('\n\n')
 }
 
 const nombre = (v: unknown) => {
@@ -68,6 +98,7 @@ export const schemaReponseLlm = z.object({
   impermeabilite: indice,
   respirabilite: indice,
   compressible: z.boolean(),
+  confiance: z.enum(['haute', 'moyenne', 'faible']).default('moyenne'),
   justification: texte(600).default(''),
 })
 

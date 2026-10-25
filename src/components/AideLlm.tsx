@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { analyserReponse, construirePrompt, type ReponseLlm } from '../lib/llm'
+import { memoriserSiteAColler, siteAColler } from '../lib/domaines'
+import { analyserReponse, construirePrompt, MAX_TEXTE_FICHE, type ReponseLlm } from '../lib/llm'
 import type { PieceEntree } from '../shared/pieces'
 
 const bouton =
@@ -7,16 +8,20 @@ const bouton =
 const zone =
   'w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm dark:border-slate-700 dark:bg-slate-900'
 
+const lienValide = (lien: string) => /^https?:\/\//i.test(lien.trim()) && URL.canParse(lien.trim())
+
 /** Étape 2 : prompt à copier vers Claude, puis JSON collé en retour. */
 export default function AideLlm({
   form,
   lien,
   ouvert,
+  onNotes,
   onReponse,
 }: {
   form: PieceEntree
   lien: string
   ouvert: boolean
+  onNotes: (notes: string) => void
   onReponse: (reponse: ReponseLlm) => void
 }) {
   const [texteFiche, setTexteFiche] = useState('')
@@ -25,8 +30,29 @@ export default function AideLlm({
   const [promptVisible, setPromptVisible] = useState<string | null>(null)
   const [message, setMessage] = useState<{ ok: boolean; texte: string } | null>(null)
 
+  const illisible = lienValide(lien) && siteAColler(lien)
+  const trop = texteFiche.trim().length > MAX_TEXTE_FICHE
+
+  async function collerPage() {
+    try {
+      setTexteFiche(await navigator.clipboard.readText())
+    } catch {
+      setMessage({ ok: false, texte: 'Presse-papiers inaccessible : colle le texte à la main dans la zone.' })
+    }
+  }
+
   async function copier() {
-    const prompt = construirePrompt({ type: form.type, lien, nom: form.nom, marque: form.marque, texteFiche })
+    const prompt = construirePrompt({
+      type: form.type,
+      lien,
+      nom: form.nom,
+      marque: form.marque,
+      texteFiche,
+      notes: form.notes,
+      actuel: form,
+    })
+    // Un texte collé avec un lien : ce site sera proposé en « coller la page » la prochaine fois.
+    if (texteFiche.trim() && lienValide(lien)) memoriserSiteAColler(lien.trim())
     try {
       await navigator.clipboard.writeText(prompt)
       setCopie(true)
@@ -54,18 +80,58 @@ export default function AideLlm({
           1. Copie le prompt. 2. Colle-le dans Claude. 3. Recopie sa réponse ici. Le type et le lien viennent du formulaire.
         </p>
 
-        <details>
-          <summary className="cursor-pointer text-sm text-slate-600 dark:text-slate-300">
-            Le lien ne passe pas ? Colle le texte de la fiche produit
+        <details open={illisible || texteFiche !== ''}>
+          <summary className="cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">
+            Contenu de la page produit {texteFiche.trim() ? '✓' : '(site qui bloque Claude ?)'}
           </summary>
-          <textarea
-            value={texteFiche}
-            onChange={(e) => setTexteFiche(e.target.value)}
-            rows={5}
-            placeholder="Texte copié depuis la page produit (composition, caractéristiques…)"
-            className={`${zone} mt-2`}
-          />
+          <div className="mt-2 space-y-2">
+            {illisible && (
+              <p className="text-xs text-amber-700 dark:text-amber-400">
+                Claude ne sait pas lire ce site : colle le contenu de la page, c’est plus rapide.
+              </p>
+            )}
+            <p className="text-xs text-slate-500">
+              Sur la page : Ctrl+A puis Ctrl+C, puis « Coller le contenu copié ». Claude n’aura alors plus à ouvrir le lien.
+            </p>
+            <div className="flex flex-wrap gap-2">
+              {lienValide(lien) ? (
+                <a href={lien.trim()} target="_blank" rel="noopener noreferrer" className={bouton}>
+                  Ouvrir le lien ↗
+                </a>
+              ) : (
+                <span className={`${bouton} opacity-50`}>Ouvrir le lien ↗</span>
+              )}
+              <button type="button" onClick={collerPage} className={bouton}>
+                Coller le contenu copié
+              </button>
+            </div>
+            <textarea
+              value={texteFiche}
+              onChange={(e) => setTexteFiche(e.target.value)}
+              rows={4}
+              placeholder="Texte de la page produit"
+              className={zone}
+            />
+            {texteFiche.trim() && (
+              <p className={`text-xs ${trop ? 'text-amber-700 dark:text-amber-400' : 'text-slate-500'}`}>
+                {texteFiche.trim().length.toLocaleString('fr-FR')} caractères
+                {trop && ` : seuls les ${MAX_TEXTE_FICHE.toLocaleString('fr-FR')} premiers seront envoyés`}
+              </p>
+            )}
+          </div>
         </details>
+
+        <label className="block text-sm font-medium">
+          Mes retours d’usage (optionnel)
+          <textarea
+            value={form.notes}
+            onChange={(e) => onNotes(e.target.value)}
+            rows={2}
+            maxLength={500}
+            placeholder="ex. je transpire beaucoup dedans, plus chaud que prévu"
+            className={`${zone} mt-1 font-normal`}
+          />
+        </label>
 
         <button type="button" onClick={copier} className={bouton}>
           {copie ? 'Prompt copié ✓' : '1. Copier le prompt'}

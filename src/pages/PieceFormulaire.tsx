@@ -56,6 +56,7 @@ function vide(): PieceEntree {
     impermeabilite: 0,
     respirabilite: 0,
     compressible: COMPRESSIBLE_PAR_TYPE.maillot_mc,
+    notes: '',
     etat: 'dispo',
   }
 }
@@ -80,7 +81,7 @@ export default function PieceFormulaire() {
   const [chargement, setChargement] = useState(id !== undefined)
   const [erreur, setErreur] = useState<string | null>(null)
   const [enCours, setEnCours] = useState(false)
-  const [justification, setJustification] = useState('')
+  const [estimation, setEstimation] = useState<Pick<ReponseLlm, 'justification' | 'confiance'> | null>(null)
 
   // Modifications d'images mises en attente jusqu'à « Enregistrer ».
   const [photosAjoutees, setPhotosAjoutees] = useState<Fichier[]>([])
@@ -105,7 +106,7 @@ export default function PieceFormulaire() {
 
   function appliquerLlm(reponse: ReponseLlm) {
     setForm((f) => appliquerReponse(f, reponse))
-    setJustification(reponse.justification)
+    setEstimation({ justification: reponse.justification, confiance: reponse.confiance })
   }
 
   function changerType(type: TypePiece) {
@@ -278,13 +279,23 @@ export default function PieceFormulaire() {
         </label>
       </Section>
 
-      <AideLlm form={form} lien={lien} ouvert={!piece} onReponse={appliquerLlm} />
+      <AideLlm form={form} lien={lien} ouvert={!piece} onNotes={(v) => modifier('notes', v)} onReponse={appliquerLlm} />
 
       <Section titre="Indices (0 à 5)">
-        {justification && (
-          <p className="rounded-lg bg-sky-50 p-3 text-sm text-sky-900 dark:bg-sky-950 dark:text-sky-100">
-            Estimation de Claude : {justification}
-          </p>
+        {estimation && (
+          <div
+            className={`space-y-1 rounded-lg p-3 text-sm ${
+              estimation.confiance === 'haute'
+                ? 'bg-sky-50 text-sky-900 dark:bg-sky-950 dark:text-sky-100'
+                : 'bg-amber-50 text-amber-900 dark:bg-amber-950 dark:text-amber-100'
+            }`}
+          >
+            <p className="font-medium">
+              Confiance {estimation.confiance}
+              {estimation.confiance !== 'haute' && ' : fiche incomplète, vérifie ces notes et corrige-les au besoin.'}
+            </p>
+            {estimation.justification && <p>{estimation.justification}</p>}
+          </div>
         )}
         <Indice libelle="Chaleur" aide="0 = aucune isolation, 5 = très chaud (hiver)" valeur={form.chaleur} onChange={(v) => modifier('chaleur', v)} />
         <Indice libelle="Coupe-vent" aide="0 = laisse passer, 5 = bloque totalement" valeur={form.coupeVent} onChange={(v) => modifier('coupeVent', v)} />

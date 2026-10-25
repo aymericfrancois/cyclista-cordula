@@ -25,6 +25,7 @@ const valide = {
   impermeabilite: 1,
   respirabilite: 2,
   compressible: true,
+  notes: '',
   etat: 'dispo',
 }
 

@@ -41,6 +41,7 @@ Champ `sport` (`'velo'` pour l'instant, `'course'` plus tard) sur les pièces et
 - zones : liste parmi tronc base, tronc milieu, tronc extérieur, jambes, bras, mains, pieds, tête/cou. Une pièce peut couvrir plusieurs zones (maillot manches longues = tronc milieu + bras). Déduites du type par défaut, modifiables.
 - composition, grammage : texte libre.
 - indices 0 à 5 : chaleur, coupe-vent, imperméabilité, respirabilité.
+- notes : retours d'usage libres (« je transpire beaucoup dedans »), réinjectés dans le prompt Claude pour ajuster les indices.
 - compressible en poche : booléen.
 - état : dispo, au sale, en lavage. Bascule en un tap depuis la liste.
 - images : 1 à 3 photos originales (1 suffit) + une image « propre » (PNG généré à part avec Flux/ComfyUI puis uploadé). Afficher l'image propre si elle existe, sinon la première photo.
@@ -59,6 +60,8 @@ Champ `sport` (`'velo'` pour l'instant, `'course'` plus tard) sur les pièces et
 CRUD des pièces. Ajout en trois étapes :
 1. Photos (caméra ou fichier) + type + lien.
 2. Aide LLM par copier-coller : l'app génère un prompt prêt à copier (lien, type, schéma JSON attendu). L'utilisateur le colle dans Claude, recopie le JSON dans l'app. Validation zod, pré-remplissage : composition, grammage, indices.
+   - Le prompt gère les fiches incomplètes (champ `confiance`) et les retours d'usage.
+   - Si le texte de la page est collé, Claude n'ouvre pas le lien. Les sites illisibles (AliExpress, Amazon, Temu, + ceux déjà collés une fois, mémorisés en localStorage) ouvrent directement la zone « coller la page ».
 3. Vérification, correction, enregistrement.
 
 ### 2. Sortie
@@ -110,7 +113,7 @@ CRUD des pièces. Ajout en trois étapes :
 ## État d'avancement
 - [x] Phase 1 (en ligne : https://cyclista-cordula.aymericola.workers.dev)
 - [x] Phase 2
-- [ ] Phase 3
+- [ ] Phase 3 (code poussé, à valider)
 - [ ] Phase 4
 - [ ] Phase 5
 - [ ] Phase 6

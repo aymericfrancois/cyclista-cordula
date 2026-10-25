@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { analyserReponse, appliquerReponse, construirePrompt, MODELE_JSON, schemaReponseLlm } from './llm'
+import { analyserReponse, appliquerReponse, construirePrompt, MAX_TEXTE_FICHE, MODELE_JSON, schemaReponseLlm } from './llm'
 import type { PieceEntree } from '../shared/pieces'
 
 const json = {
@@ -12,11 +12,12 @@ const json = {
   impermeabilite: 2,
   respirabilite: 3,
   compressible: false,
+  confiance: 'moyenne',
   justification: 'Deux tissus, moyenne.',
 }
 
 describe('construirePrompt', () => {
-  const base = { type: 'gilet' as const, lien: 'https://exemple.fr/p', nom: '', marque: '', texteFiche: '' }
+  const base = { type: 'gilet' as const, lien: 'https://exemple.fr/p', nom: '', marque: '', texteFiche: '', notes: '' }
 
   it('contient le lien, le type en français et le modèle JSON', () => {
     const p = construirePrompt(base)
@@ -25,9 +26,40 @@ describe('construirePrompt', () => {
     expect(p).toContain(MODELE_JSON)
   })
 
-  it('n’ajoute le texte de la fiche que s’il existe', () => {
-    expect(construirePrompt(base)).not.toContain('Texte de la fiche produit')
-    expect(construirePrompt({ ...base, texteFiche: 'Tissu bleu nylon' })).toContain('Tissu bleu nylon')
+  it('demande d’ouvrir le lien quand il n’y a pas de texte de fiche', () => {
+    const p = construirePrompt(base)
+    expect(p).not.toContain('Texte de la fiche produit')
+    expect(p).toContain('Ouvre le lien')
+  })
+
+  it('avec le texte de la page : Claude s’y limite et n’ouvre pas le lien', () => {
+    const p = construirePrompt({ ...base, texteFiche: 'Tissu bleu nylon' })
+    expect(p).toContain('Tissu bleu nylon')
+    expect(p).toContain('N\'ouvre pas le lien')
+    expect(p).not.toContain('Ouvre le lien et lis')
+  })
+
+  it('tronque une page trop longue', () => {
+    const p = construirePrompt({ ...base, texteFiche: 'a'.repeat(MAX_TEXTE_FICHE + 5000) })
+    expect(p).toContain('a'.repeat(MAX_TEXTE_FICHE))
+    expect(p).not.toContain('a'.repeat(MAX_TEXTE_FICHE + 1))
+  })
+
+  it('prévoit le cas d’une fiche incomplète', () => {
+    expect(construirePrompt(base)).toContain('pourcentages non précisés')
+  })
+
+  it('transmet les retours d’usage et les valeurs actuelles', () => {
+    const actuel = { composition: 'PA', grammage: '', chaleur: 3, coupeVent: 4, impermeabilite: 1, respirabilite: 3 }
+    const p = construirePrompt({ ...base, notes: 'je transpire beaucoup dedans', actuel })
+    expect(p).toContain('je transpire beaucoup dedans')
+    expect(p).toContain('chaleur 3, coupeVent 4')
+    expect(p).toContain('ajuste les notes')
+  })
+
+  it('n’affiche pas de valeurs actuelles quand la fiche est vierge', () => {
+    const vierge = { composition: '', grammage: '', chaleur: 0, coupeVent: 0, impermeabilite: 0, respirabilite: 0 }
+    expect(construirePrompt({ ...base, actuel: vierge })).not.toContain('Valeurs déjà enregistrées')
   })
 
   it('le modèle JSON du prompt est accepté par le schéma', () => {
@@ -36,6 +68,16 @@ describe('construirePrompt', () => {
 })
 
 describe('analyserReponse', () => {
+  it('met la confiance à « moyenne » si Claude l’oublie', () => {
+    const { confiance: _oubli, ...sans } = json
+    const r = analyserReponse(JSON.stringify(sans))
+    expect(r.ok && r.reponse.confiance).toBe('moyenne')
+  })
+
+  it('refuse une confiance inconnue', () => {
+    expect(analyserReponse(JSON.stringify({ ...json, confiance: 'certaine' })).ok).toBe(false)
+  })
+
   it('lit un bloc ```json', () => {
     const r = analyserReponse('Voici :\n```json\n' + JSON.stringify(json) + '\n```\nBonne sortie !')
     expect(r.ok && r.reponse.chaleur).toBe(3)
@@ -79,7 +121,7 @@ describe('appliquerReponse', () => {
   const form: PieceEntree = {
     sport: 'velo', nom: 'Mon nom', marque: '', lien: null, type: 'gilet', zones: ['tronc_exterieur'],
     composition: '', grammage: '', chaleur: 0, coupeVent: 0, impermeabilite: 0, respirabilite: 0,
-    compressible: true, etat: 'dispo',
+    compressible: true, notes: '', etat: 'dispo',
   }
 
   it('garde le nom saisi, complète la marque vide et remplace le reste', () => {

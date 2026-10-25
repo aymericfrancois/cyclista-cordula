@@ -17,6 +17,7 @@ type Ligne = {
   impermeabilite: number
   respirabilite: number
   compressible: number
+  notes: string
   etat: string
   photos: string
   image_propre: string | null
@@ -46,6 +47,7 @@ function versPiece(l: Ligne): Piece {
     impermeabilite: l.impermeabilite,
     respirabilite: l.respirabilite,
     compressible: l.compressible === 1,
+    notes: l.notes,
     etat: l.etat,
     photos: JSON.parse(l.photos),
     imagePropre: l.image_propre,
@@ -85,12 +87,12 @@ pieces.post('/', async (c) => {
   const id = crypto.randomUUID()
   await c.env.DB.prepare(
     `INSERT INTO pieces (id, sport, nom, marque, lien, type, zones, composition, grammage,
-       chaleur, coupe_vent, impermeabilite, respirabilite, compressible, etat)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       chaleur, coupe_vent, impermeabilite, respirabilite, compressible, notes, etat)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
   )
     .bind(
       id, p.sport, p.nom, p.marque, p.lien, p.type, JSON.stringify(p.zones), p.composition, p.grammage,
-      p.chaleur, p.coupeVent, p.impermeabilite, p.respirabilite, p.compressible ? 1 : 0, p.etat,
+      p.chaleur, p.coupeVent, p.impermeabilite, p.respirabilite, p.compressible ? 1 : 0, p.notes, p.etat,
     )
     .run()
   return c.json(await lirePiece(c.env, id), 201)
@@ -110,12 +112,12 @@ pieces.put('/:id', async (c) => {
   await c.env.DB.prepare(
     `UPDATE pieces SET sport = ?, nom = ?, marque = ?, lien = ?, type = ?, zones = ?, composition = ?,
        grammage = ?, chaleur = ?, coupe_vent = ?, impermeabilite = ?, respirabilite = ?,
-       compressible = ?, etat = ?, maj_le = datetime('now')
+       compressible = ?, notes = ?, etat = ?, maj_le = datetime('now')
      WHERE id = ?`,
   )
     .bind(
       p.sport, p.nom, p.marque, p.lien, p.type, JSON.stringify(p.zones), p.composition, p.grammage,
-      p.chaleur, p.coupeVent, p.impermeabilite, p.respirabilite, p.compressible ? 1 : 0, p.etat, id,
+      p.chaleur, p.coupeVent, p.impermeabilite, p.respirabilite, p.compressible ? 1 : 0, p.notes, p.etat, id,
     )
     .run()
   return c.json(await lirePiece(c.env, id))
